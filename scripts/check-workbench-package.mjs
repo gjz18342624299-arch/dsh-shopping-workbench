@@ -1,0 +1,14 @@
+import fs from 'node:fs';
+import path from 'node:path';
+import {fileURLToPath} from 'node:url';
+const root=path.resolve(path.dirname(fileURLToPath(import.meta.url)),'..');
+const p=JSON.parse(fs.readFileSync(path.join(root,'package.json')));
+for(const key of [p.main,p.exports['.'],p.exports['./client'],p.dsh.bundle.patch])if(!fs.existsSync(path.join(root,key)))throw Error('Missing '+key);
+if(p.dsh.client.platform!=='web'||!p.dsh.client.inject.includes('dsh-desktop-workbenches'))throw Error('Invalid client contract');
+if(!fs.readFileSync(path.join(root,'cordis.patch.yml'),'utf8').includes('name: '+p.name))throw Error('Invalid patch');
+const repository='https://github.com/gjz18342624299-arch/dsh-shopping-workbench';
+if(p.repository?.url!=='git+'+repository+'.git')throw Error('Invalid repository');
+if(!fs.readFileSync(path.join(root,p.exports['./client']),'utf8').includes(repository))throw Error('Client repository mismatch');
+const seed=JSON.parse(fs.readFileSync(path.join(root,'dsh/seed-calendar.json')));
+if(seed.events.length||seed.couponEntries?.length||seed.sources.some(s=>s.evidence))throw Error('Public seed must not contain collected content');
+console.log('Package entry, patch, repository and empty public seed checks passed. Desktop UI verification remains separate.');
