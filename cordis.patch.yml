@@ -1,0 +1,5 @@
+- insert:
+    - id: dsh-shopping-workbench
+      name: dsh-shopping-workbench
+      config:
+        root: !!js dshHomePath('shopping-workbench')

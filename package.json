@@ -1,0 +1,50 @@
+{
+  "name": "dsh-shopping-workbench",
+  "version": "0.27.3",
+  "private": false,
+  "type": "module",
+  "description": "DSH Desktop 购物需求分析、促销信息采集、购买安排与日历导出工作台。",
+  "license": "MIT",
+  "main": "./dsh/index.js",
+  "exports": {
+    ".": "./dsh/index.js",
+    "./client": "./lib/client.js",
+    "./package.json": "./package.json",
+    "./cordis.patch.yml": "./cordis.patch.yml"
+  },
+  "files": [
+    "dsh",
+    "lib",
+    "cordis.patch.yml",
+    "README.md",
+    "LICENSE",
+    "scripts"
+  ],
+  "scripts": {
+    "check": "node scripts/check-workbench-package.mjs"
+  },
+  "dependencies": {
+    "@deepseek-ai/schemastery": "3.18.4",
+    "playwright-core": "1.58.2"
+  },
+  "dsh": {
+    "bundle": {
+      "patch": "./cordis.patch.yml"
+    },
+    "client": {
+      "platform": "web",
+      "inject": [
+        "dsh-desktop-workbenches"
+      ]
+    }
+  },
+  "peerDependencies": {
+    "@deepseek-ai/dsh-llm": ">=0.2.0-rc.2 <0.3.0-0"
+  },
+  "author": "gaojingze",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/gjz18342624299-arch/dsh-shopping-workbench.git"
+  },
+  "homepage": "https://github.com/gjz18342624299-arch/dsh-shopping-workbench"
+}
