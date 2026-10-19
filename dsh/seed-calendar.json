@@ -1,0 +1,240 @@
+{
+  "version": 1,
+  "timezone": "Asia/Shanghai",
+  "updatedAt": "2026-10-19T08:47:55.058Z",
+  "sources": [
+    {
+      "id": "tmall-announcement",
+      "platform": "淘宝／天猫",
+      "name": "集团双11公告",
+      "url": "https://www.alibabagroup.com/zh-CN/document-2047546975867371520",
+      "evidence": "",
+      "status": "not_found",
+      "note": "首次安装尚未采集，待联网核对；不代表平台没有活动。",
+      "checkedAt": "2026-10-19T12:45:00+08:00"
+    },
+    {
+      "id": "tmall-apple",
+      "platform": "淘宝／天猫",
+      "name": "天猫苹果惊喜券官宣",
+      "url": "https://weibo.com/1768198384/RmGF1zSgg",
+      "evidence": "",
+      "status": "not_found",
+      "note": "首次安装尚未采集，待联网核对；不代表平台没有活动。",
+      "checkedAt": "2026-10-19T12:45:00+08:00"
+    },
+    {
+      "id": "jd-cross",
+      "platform": "京东",
+      "name": "京麦跨店满减活动规则",
+      "url": "https://learn-jdm.jd.com/knowledge/rule/detail?ruleId=1423473214631948288",
+      "evidence": "",
+      "status": "not_found",
+      "note": "首次安装尚未采集，待联网核对；不代表平台没有活动。",
+      "checkedAt": "2026-10-19T12:45:00+08:00"
+    },
+    {
+      "id": "jd-direct",
+      "platform": "京东",
+      "name": "京麦官方直降活动规则",
+      "url": "https://learn-jdm.jd.com/knowledge/rule/detail?ruleId=1423473347058585600",
+      "evidence": "",
+      "status": "not_found",
+      "note": "首次安装尚未采集，待联网核对；不代表平台没有活动。",
+      "checkedAt": "2026-10-19T12:45:00+08:00"
+    },
+    {
+      "id": "jd-live-linyi",
+      "platform": "京东",
+      "name": "京东服饰美妆直播官宣",
+      "url": "https://weibo.com/1717871843/Rnn4si2i7",
+      "evidence": "",
+      "status": "not_found",
+      "note": "首次安装尚未采集，待联网核对；不代表平台没有活动。",
+      "checkedAt": "2026-10-19T12:45:00+08:00"
+    },
+    {
+      "id": "dy-faq",
+      "platform": "抖音",
+      "name": "2026双11达人FAQ",
+      "url": "https://school.jinritemai.com/doudian/web/article/aJrKfrcWpVEL",
+      "evidence": "",
+      "status": "not_found",
+      "note": "首次安装尚未采集，待联网核对；不代表平台没有活动。",
+      "checkedAt": "2026-10-19T12:45:00+08:00"
+    },
+    {
+      "id": "ljq-fashion",
+      "platform": "李佳琦",
+      "name": "李佳琦官方时尚节预告",
+      "url": "https://weibo.com/7288556458/RnkyIujXQ",
+      "evidence": "",
+      "status": "not_found",
+      "note": "首次安装尚未采集，待联网核对；不代表平台没有活动。",
+      "checkedAt": "2026-10-19T12:45:00+08:00"
+    },
+    {
+      "id": "jgf-lip",
+      "platform": "交个朋友",
+      "name": "官方双11护唇节预告",
+      "url": "https://weibo.com/1640571365/RnmhK4GaG",
+      "evidence": "",
+      "status": "not_found",
+      "note": "首次安装尚未采集，待联网核对；不代表平台没有活动。",
+      "checkedAt": "2026-10-19T12:45:00+08:00"
+    },
+    {
+      "id": "pdd-official",
+      "platform": "拼多多",
+      "name": "官方开放平台及活动来源待补",
+      "url": "https://open.pinduoduo.com/",
+      "evidence": "",
+      "status": "not_found",
+      "note": "首次安装尚未采集，待联网核对；不代表平台没有活动。",
+      "checkedAt": "2026-10-19T12:45:00+08:00"
+    },
+    {
+      "id": "df-history",
+      "platform": "东方甄选",
+      "name": "官方周日历历史发布例",
+      "url": "https://www.sina.cn/news/detail/5101656007772010.html",
+      "evidence": "",
+      "status": "not_found",
+      "note": "首次安装尚未采集，待联网核对；不代表平台没有活动。",
+      "checkedAt": "2026-10-19T12:45:00+08:00"
+    },
+    {
+      "id": "yh-official",
+      "platform": "与辉同行",
+      "name": "官方主体发布例",
+      "url": "https://www.sina.cn/news/detail/5347162926089013.html",
+      "evidence": "",
+      "status": "not_found",
+      "note": "首次安装尚未采集，待联网核对；不代表平台没有活动。",
+      "checkedAt": "2026-10-19T12:45:00+08:00"
+    },
+    {
+      "id": "zdm-calendar",
+      "platform": "什么值得买",
+      "name": "值得买双11攻略（第三方整理）",
+      "url": "https://www.smzdm.com/p/183881699/",
+      "evidence": "",
+      "status": "not_found",
+      "note": "首次安装尚未采集，待联网核对；不代表平台没有活动。",
+      "checkedAt": "2026-10-19T05:13:36.719Z",
+      "trust": "community"
+    },
+    {
+      "id": "zdm-jd",
+      "platform": "京东",
+      "name": "值得买双11攻略（第三方整理）",
+      "url": "https://www.smzdm.com/p/183881699/",
+      "evidence": "",
+      "status": "not_found",
+      "note": "首次安装尚未采集，待联网核对；不代表平台没有活动。",
+      "checkedAt": "2026-10-19T05:13:36.719Z",
+      "trust": "community"
+    },
+    {
+      "id": "zdm-tmall",
+      "platform": "淘宝／天猫",
+      "name": "值得买双11攻略（第三方整理）",
+      "url": "https://www.smzdm.com/p/183881699/",
+      "evidence": "",
+      "status": "not_found",
+      "note": "首次安装尚未采集，待联网核对；不代表平台没有活动。",
+      "checkedAt": "2026-10-19T05:13:36.719Z",
+      "trust": "community"
+    },
+    {
+      "id": "ali-red-rule",
+      "platform": "淘宝／天猫",
+      "name": "阿里妈妈2026超级红包规则",
+      "url": "https://1111.alimama.com/alimamamain/page_20211227_144813",
+      "evidence": "",
+      "status": "not_found",
+      "note": "首次安装尚未采集，待联网核对；不代表平台没有活动。",
+      "checkedAt": "2026-10-19T05:32:09.717Z",
+      "trust": "official"
+    },
+    {
+      "id": "jd-press-calendar",
+      "platform": "京东",
+      "name": "IT之家京东双11发布会现场报道",
+      "url": "https://m.ithome.com/html/1013437.htm",
+      "evidence": "",
+      "status": "not_found",
+      "note": "首次安装尚未采集，待联网核对；不代表平台没有活动。",
+      "checkedAt": "2026-10-19T05:32:09.717Z",
+      "trust": "media"
+    },
+    {
+      "id": "tmall-recruit-media",
+      "platform": "淘宝／天猫",
+      "name": "亿邦动力天猫招商规则报道（新浪转载）",
+      "url": "https://finance.sina.com.cn/tech/roll/2026-09-25/doc-iniszmmx4463810.shtml",
+      "evidence": "",
+      "status": "not_found",
+      "note": "首次安装尚未采集，待联网核对；不代表平台没有活动。",
+      "checkedAt": "2026-10-19T05:32:09.717Z",
+      "trust": "media"
+    },
+    {
+      "id": "dy-conference",
+      "platform": "抖音",
+      "name": "抖音2026双11招商大会",
+      "url": "https://school.jinritemai.com/doudian/web/course-series/cJqWCbJqmXwf?biz_from=peer_learning_course_ranking",
+      "evidence": "",
+      "status": "not_found",
+      "note": "首次安装尚未采集，待联网核对；不代表平台没有活动。",
+      "checkedAt": "2026-10-19T05:32:09.717Z",
+      "trust": "official"
+    },
+    {
+      "id": "dy-news-phases",
+      "platform": "抖音",
+      "name": "新华网抖音双11启动报道",
+      "url": "https://www2.xinhuanet.com/tech/20261016/7fc4e06d797d43879577a0054a9f3ee2/c.html",
+      "evidence": "",
+      "status": "not_found",
+      "note": "首次安装尚未采集，待联网核对；不代表平台没有活动。",
+      "checkedAt": "2026-10-19T05:32:09.717Z",
+      "trust": "media"
+    },
+    {
+      "id": "pdd-recruit-media",
+      "platform": "拼多多",
+      "name": "亿邦动力拼多多招商报道（新浪转载）",
+      "url": "https://finance.sina.com.cn/tech/roll/2026-10-13/doc-iniuzuyi5063535.shtml",
+      "evidence": "",
+      "status": "not_found",
+      "note": "首次安装尚未采集，待联网核对；不代表平台没有活动。",
+      "checkedAt": "2026-10-19T05:32:09.717Z",
+      "trust": "media"
+    },
+    {
+      "id": "zdm-sport-coupon-20261019",
+      "platform": "淘宝／天猫",
+      "name": "值得买天猫运动户外双11券包整理",
+      "url": "https://www.smzdm.com/p/184013243/",
+      "evidence": "",
+      "status": "not_found",
+      "note": "首次安装尚未采集，待联网核对；不代表平台没有活动。",
+      "checkedAt": "2026-10-19T06:45:26.751Z",
+      "trust": "community"
+    },
+    {
+      "id": "tmall-vip-tier-media-20261015",
+      "platform": "淘宝／天猫",
+      "name": "新浪转载红星新闻：88VIP消费券自选档位",
+      "url": "https://finance.sina.com.cn/tech/roll/2026-10-15/doc-inivhtuq4592440.shtml",
+      "evidence": "",
+      "status": "not_found",
+      "note": "首次安装尚未采集，待联网核对；不代表平台没有活动。",
+      "checkedAt": "2026-10-19T08:47:55.058Z",
+      "trust": "media"
+    }
+  ],
+  "events": [],
+  "couponEntries": []
+}

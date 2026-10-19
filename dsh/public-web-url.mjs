@@ -1,0 +1,4 @@
+import {isIP} from 'node:net';
+import {lookup} from 'node:dns/promises';
+export function isPublicWebUrl(value){try{const u=new URL(value),h=u.hostname.toLowerCase();return u.protocol==='https:'&&!u.username&&!u.password&&(!u.port||u.port==='443')&&h.includes('.')&&!isIP(h)&&!h.startsWith('[')&&!/(^|\.)(localhost|local|internal|lan|home|test|invalid)$/.test(h)}catch{return false}}
+export async function assertPublicWebUrl(value){if(!isPublicWebUrl(value))throw Error('非公开HTTPS网址');const records=await lookup(new URL(value).hostname,{all:true});if(!records.length||records.some(({address:a})=>{if(a.includes(':'))return !/^[23][0-9a-f]{3}:/i.test(a);const [x,y]=a.split('.').map(Number);return x===0||x===10||x===127||x>=224||x===169&&y===254||x===172&&y>=16&&y<=31||x===192&&y===168||x===100&&y>=64&&y<=127||x===198&&(y===18||y===19)}))throw Error('网址指向非公开网络');}
