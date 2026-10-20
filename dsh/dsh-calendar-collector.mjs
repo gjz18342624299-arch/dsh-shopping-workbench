@@ -3,9 +3,19 @@ import {readFile,writeFile,mkdir,rename} from 'node:fs/promises';
 import {join} from 'node:path';
 import {createHash} from 'node:crypto';
 import {projectRoot,dataPath,commitCalendar,validateCalendar,knownHost,redirectHostRe} from './live-calendar.mjs';
-import {sourceHubs,discoverLinks,prioritizePlans} from './promotion-discovery.mjs';
-import {createPublicRenderer} from './dsh-calendar-browser.mjs';
+import {sourceHubs,discoverLinks,prioritizePlans,manualOnly} from './promotion-discovery.mjs';
+import {createPublicRenderer,proxyArgs} from './dsh-calendar-browser.mjs';
 
+// 把采集失败的原始错误翻译成用户能看懂的一句话；界面上按这句话归类统计。
+export function describeFailure(msg){const m=String(msg||'');
+ if(/ERR_PROXY_CONNECTION_FAILED/.test(m))return '系统代理未开启，浏览器打不开页面';
+ if(/DSH搜索不可用/.test(m))return 'DSH 联网搜索不可用';
+ if(/ERR_NAME_NOT_RESOLVED|ENOTFOUND|ERR_CONNECTION|ECONNREFUSED|ETIMEDOUT|timeout|Timeout|超时|无法访问/i.test(m))return '网站连不上或超时';
+ if(/登录|验证|人工|正文不足|动态渲染|未取得完整正文/.test(m))return '页面要登录或人机验证，读不到正文';
+ if(/JSON|模型没有返回|模型输出|max-tokens/.test(m))return '模型没有返回完整结果';
+ if(/未核验到当年活动/.test(m))return '正文里没有今年的活动信息';
+ if(/45分钟|上限/.test(m))return '本批超过时间上限';
+ return m.slice(0,80)}
 export const dayCN=(now=new Date())=>new Intl.DateTimeFormat('sv-SE',{timeZone:'Asia/Shanghai',year:'numeric',month:'2-digit',day:'2-digit'}).format(now);
 export function due(settings,state,now=new Date()){const hour=Number(new Intl.DateTimeFormat('en-GB',{timeZone:'Asia/Shanghai',hour:'2-digit',hourCycle:'h23'}).format(now));return settings.enabled&&hour>=settings.hour&&state.lastAttemptDay!==dayCN(now)}
 export function htmlText(raw){return String(raw).replace(/<(script|style|noscript|svg)\b[^>]*>[\s\S]*?<\/\1>/gi,' ').replace(/<[^>]+>/g,' ').replace(/&nbsp;|&#160;/g,' ').replace(/&amp;/g,'&').replace(/&quot;/g,'"').replace(/&#39;/g,"'").replace(/&lt;/g,'<').replace(/&gt;/g,'>').replace(/\s+/g,' ').trim().slice(0,50000)}
@@ -66,23 +76,25 @@ export function createCollector({extract,search,fetchPage=publicPage,now=()=>new
  function status(){return {...state,running,settings,engine:'DSH后台采集；不依赖Codex',sourceHubs,collectionLimits:{articlesPerRun:12,linksPerHub:3,maxMinutes:45},modelUsage:'正文结构化使用DSH当前默认模型；可能产生该模型的调用费用'};}
  async function configure(input){if(typeof input.enabled!=='boolean'||!Number.isInteger(input.hour)||input.hour<0||input.hour>23)throw Error('调度设置无效');settings={enabled:input.enabled,hour:input.hour};await saveJson(configPath,settings);return status()}
  async function run(reason='manual'){
-  if(running)return status();running=true;const started=now();state={...state,phase:'running',lastAttemptDay:dayCN(started),lastStartedAt:started.toISOString(),lastFinishedAt:null,checked:0,total:0,failures:[],reason};await persist();
-  const controller=new AbortController();activeController=controller;const timeout=setTimeout(()=>controller.abort(),45*60*1000);let renderer;
+  if(running)return status();running=true;const started=now();state={...state,phase:'running',lastAttemptDay:dayCN(started),lastStartedAt:started.toISOString(),lastFinishedAt:null,checked:0,total:0,failures:[],reason,summary:'',added:null,network:''};await persist();
+  const controller=new AbortController();activeController=controller;const timeout=setTimeout(()=>controller.abort(),45*60*1000);let renderer;let before={events:0,coupons:0};let queue=[];let discoveryFailed=0;
   try{
+   try{state.network=(await proxyArgs()).note}catch{}
    renderer=await rendererFactory();
-   const candidate=validateCalendar(await loadData());const batch=structuredClone(candidate);const plans=batch.sources.filter(s=>s.status!=='historical').map(s=>({id:s.id,platform:s.platform,name:s.name,url:s.url,trust:s.trust||'official'}));
-   if(search)for(const [platform,query] of discover){if(controller.signal.aborted)break;try{const result=await search(`${started.getFullYear()} ${query}`,AbortSignal.any([controller.signal,AbortSignal.timeout(20000)]));for(const hit of (result.sources||[]).slice(0,2)){const url=hit.url;if(allowedUrl(url)&&knownHost(url)&&!plans.some(p=>p.url===url))plans.push({id:'discover-'+createHash('sha256').update(url).digest('hex').slice(0,14),platform,name:hit.title||'活动新公告',url,trust:hostTrust(url)})}}catch{state.failures.push({platform,stage:'discovery',error:'DSH搜索不可用，仍检查固定来源'})}}
+   const candidate=validateCalendar(await loadData());const batch=structuredClone(candidate);before={events:batch.events.length,coupons:(batch.couponEntries||[]).length};let skippedManual=0;for(const src of batch.sources)if(manualOnly(src.url)&&src.status!=='historical'){skippedManual++;if(!/需登录/.test(src.note||''))src.note='需登录才能查看，已停止每日自动访问，可手动核对：'+(src.note||'')}state.skippedManual=skippedManual;const plans=batch.sources.filter(s=>s.status!=='historical'&&!manualOnly(s.url)).map(s=>({id:s.id,platform:s.platform,name:s.name,url:s.url,trust:s.trust||'official'}));
+   if(search)for(const [platform,query] of discover){if(controller.signal.aborted)break;try{const result=await search(`${started.getFullYear()} ${query}`,AbortSignal.any([controller.signal,AbortSignal.timeout(20000)]));for(const hit of (result.sources||[]).slice(0,2)){const url=hit.url;if(allowedUrl(url)&&knownHost(url)&&!plans.some(p=>p.url===url))plans.push({id:'discover-'+createHash('sha256').update(url).digest('hex').slice(0,14),platform,name:hit.title||'活动新公告',url,trust:hostTrust(url)})}}catch{discoveryFailed++;if(!state.failures.some(f=>f.stage==='discovery'))state.failures.push({platform:'全部',stage:'discovery',error:'DSH搜索不可用，仍检查固定来源',reason:'DSH 联网搜索不可用'})}}
    state.hubs=[];const pageCache=new Map();
-   const readPage=async url=>{if(pageCache.has(url))return pageCache.get(url);let page;try{page=await fetchPage(url,AbortSignal.any([controller.signal,AbortSignal.timeout(15000)]))}catch{page={text:''}};if(page.text.length<300)page=await renderer.fetchPage(url,AbortSignal.any([controller.signal,AbortSignal.timeout(25000)]));pageCache.set(url,page);return page};
-   for(const hub of sourceHubs){if(controller.signal.aborted)break;try{const page=await readPage(hub.url);const links=discoverLinks(hub,page,allowedUrl);for(const link of links)plans.push({...link,id:'hub-'+createHash('sha256').update(link.platform+'|'+link.url).digest('hex').slice(0,14)});state.hubs.push({...hub,status:page.text.length>=300?'read':'insufficient',discovered:links.length,checkedAt:now().toISOString()})}catch(e){state.hubs.push({...hub,status:'blocked',discovered:0,error:String(e.message).slice(0,100),checkedAt:now().toISOString()})}await persist()}
-   const queue=prioritizePlans(plans,batch.sources,12);state.total=queue.length;state.deferred=Math.max(0,plans.length-queue.length);await persist();
+   const readPage=async(url,render=false)=>{if(pageCache.has(url))return pageCache.get(url);let page={text:''};if(!render)try{page=await fetchPage(url,AbortSignal.any([controller.signal,AbortSignal.timeout(15000)]))}catch{page={text:''}};if(page.text.length<300)page=await renderer.fetchPage(url,AbortSignal.any([controller.signal,AbortSignal.timeout(25000)]));pageCache.set(url,page);return page};
+   for(const hub of sourceHubs){if(controller.signal.aborted)break;try{const page=await readPage(hub.url,!!hub.render);const links=discoverLinks(hub,page,allowedUrl).filter(l=>!manualOnly(l.url));for(const link of links)plans.push({...link,id:'hub-'+createHash('sha256').update(link.platform+'|'+link.url).digest('hex').slice(0,14)});state.hubs.push({...hub,status:page.text.length>=300?'read':'insufficient',discovered:links.length,checkedAt:now().toISOString()})}catch(e){state.hubs.push({...hub,status:'blocked',discovered:0,error:String(e.message).slice(0,100),checkedAt:now().toISOString()})}await persist()}
+   queue=prioritizePlans(plans,batch.sources,12);state.total=queue.length;state.deferred=Math.max(0,plans.length-queue.length);await persist();
    for(const plan of queue){
     if(controller.signal.aborted)throw Error('本批采集达到45分钟上限');
     const checkedAt=now().toISOString();let source=batch.sources.find(s=>s.id===plan.id);
     if(!source){source={...plan,evidence:'',checkedAt,status:'not_found',note:''};batch.sources.push(source)}
     try{
      const page=await readPage(plan.url);
-     if(page.text.length<300||/passport\.weibo|扫码登录|访问异常|安全验证|验证码|enable JavaScript|^Loading\.\.\.$/i.test(page.text))throw Error('页面需要登录、动态渲染或人工验证，未取得完整正文');
+     // 登录墙判定只看短页面：值得买等正常文章页的导航栏里也有“验证码”“登录”字样，正文超过 2500 字就当作读到了。
+     if(page.text.length<300||page.text.length<2500&&/passport\.weibo|扫码登录|访问异常|安全验证|验证码|enable JavaScript|^Loading\.\.\.$/i.test(page.text))throw Error('页面需要登录、动态渲染或人工验证，未取得完整正文');
      const raw=await extract({platform:plan.platform,url:plan.url,text:page.text.slice(0,22000),links:(page.links||[]).slice(0,120),trust:plan.trust,year:started.getFullYear()},AbortSignal.any([controller.signal,AbortSignal.timeout(170000)]));
      if(!raw||(plan.trust==='community'?raw.community!==true:plan.trust==='media'?raw.media!==true:raw.official!==true)||raw.currentYear!==true||!Array.isArray(raw.events))throw Error('未核验到当年活动正文');
      const normTime=t=>{if(t===null||t===undefined||t==='')return null;const s=String(t).trim();let m=s.match(/^([01]?\d|2[0-3])[:：]([0-5]\d)/);if(m)return m[1].padStart(2,'0')+':'+m[2];m=s.match(/^(?:晚上?|晚间|下午)?\s*(\d{1,2})\s*点(?:(\d{2})分?)?/);if(m){let h=Number(m[1]);if(/晚|下午/.test(s)&&h<12)h+=12;if(h<24)return String(h).padStart(2,'0')+':'+(m[2]||'00')}return null};
@@ -104,13 +116,25 @@ export function createCollector({extract,search,fetchPage=publicPage,now=()=>new
      if(missing.length)nextSource.evidence+='\n[历史核验片段，未在本次重读确认]\n'+missing.map(e=>e.evidenceQuote).join('\n');
      validateCalendar(next);Object.assign(batch,next);
      await mkdir(join(storageRoot,'logs/calendar-evidence'),{recursive:true});await writeFile(join(storageRoot,'logs/calendar-evidence',dayCN(started)+'-'+plan.id+'.json'),JSON.stringify({url:plan.url,checkedAt,text:page.text},null,2));
-    }catch(error){source=batch.sources.find(s=>s.id===plan.id);Object.assign(source,{status:'blocked',checkedAt,note:String(error.message).slice(0,180)});state.failures.push({platform:plan.platform,sourceId:plan.id,stage:'read_or_extract',error:source.note})}
+    }catch(error){source=batch.sources.find(s=>s.id===plan.id);Object.assign(source,{status:'blocked',checkedAt,note:String(error.message).slice(0,180),reason:describeFailure(error.message)});state.failures.push({platform:plan.platform,sourceId:plan.id,stage:'read_or_extract',error:source.note,reason:source.reason})}
     state.checked++;await persist();
    }
    batch.updatedAt=now().toISOString();const result=await commitData(batch);state.phase=state.failures.length?'partial':'completed';state.result=result;state.lastFinishedAt=now().toISOString();
-  }catch(error){state.phase='failed';state.lastFinishedAt=now().toISOString();state.failures.push({stage:'batch',error:String(error.message).slice(0,200)})}
-  finally{clearTimeout(timeout);await renderer?.close();activeController=undefined;running=false;await persist()}
+   state.added={events:batch.events.length-before.events,coupons:(batch.couponEntries||[]).length-before.coupons,verified:queue.filter(p=>batch.sources.find(s=>s.id===p.id)?.status==='verified').length};
+  }catch(error){state.phase='failed';state.lastFinishedAt=now().toISOString();state.failures.push({stage:'batch',error:String(error.message).slice(0,200),reason:describeFailure(error.message)})}
+  finally{clearTimeout(timeout);if(renderer?.network?.())state.network=renderer.network();await renderer?.close();activeController=undefined;running=false;state.summary=summarize(state,queue.length,discoveryFailed);await persist()}
   return status();
+ }
+ // 一句人话说明这一轮到底拿到了什么：读通几个来源、新增几条、受阻原因各几个。
+ function summarize(s,total,discoveryFailed){
+  const a=s.added||{events:0,coupons:0,verified:0};
+  const parts=[s.phase==='failed'?'本轮采集失败':`本轮读通 ${a.verified}/${total} 个来源，新增 ${a.events} 条活动、${a.coupons} 条券`];
+  if(s.phase!=='failed'&&a.events===0&&a.coupons===0)parts.push('没有拿到任何新信息');
+  const reasons={};for(const f of s.failures)if(f.stage!=='discovery'){const k=f.reason||describeFailure(f.error);reasons[k]=(reasons[k]||0)+1}
+  if(Object.keys(reasons).length)parts.push('受阻原因：'+Object.entries(reasons).map(([k,v])=>k+' '+v+' 个').join('，'));
+  if(discoveryFailed>=discover.length/2)parts.push('DSH 联网搜索整轮不可用，没有发现新来源');
+  if(s.skippedManual)parts.push(s.skippedManual+' 个需登录来源已停止自动访问');if(s.network)parts.push(s.network);
+  return parts.join('；');
  }
  async function tick(){if(!running&&due(settings,state,now()))return run('daily');return status()}
  return {init,status,configure,run,tick,stop(){activeController?.abort()}};
