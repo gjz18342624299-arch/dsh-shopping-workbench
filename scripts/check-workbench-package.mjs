@@ -10,5 +10,5 @@ const repository='https://github.com/gjz18342624299-arch/dsh-shopping-workbench'
 if(p.repository?.url!=='git+'+repository+'.git')throw Error('Invalid repository');
 if(!fs.readFileSync(path.join(root,p.exports['./client']),'utf8').includes(repository))throw Error('Client repository mismatch');
 const seed=JSON.parse(fs.readFileSync(path.join(root,'dsh/seed-calendar.json')));
-if(seed.events.length||seed.couponEntries?.length||seed.sources.some(s=>s.evidence))throw Error('Public seed must not contain collected content');
-console.log('Package entry, patch, repository and empty public seed checks passed. Desktop UI verification remains separate.');
+if(!seed.events.length)throw Error('Seed calendar must ship with events so first-run users see content');if(seed.sources.some(s=>String(s.evidence||'').length>4000))throw Error('Public seed may only carry event quotes as evidence, not page bodies');
+console.log('Package entry, patch, repository and seeded calendar checks passed. Desktop UI verification remains separate.');

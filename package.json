@@ -1,6 +1,6 @@
 {
   "name": "dsh-shopping-workbench",
-  "version": "0.28.3",
+  "version": "0.33.0",
   "private": false,
   "type": "module",
   "description": "双11省钱情报局：写下想买的东西，直接给出在哪个平台、哪天几点买、用什么优惠；每天自动采集各平台双11营销日历。",
@@ -39,7 +39,8 @@
     }
   },
   "peerDependencies": {
-    "@deepseek-ai/dsh-llm": ">=0.2.0-rc.2 <0.3.0-0"
+    "@deepseek-ai/dsh-llm": ">=0.2.0-rc.2 <0.3.0-0",
+    "@deepseek-ai/dsh-tools": ">=0.2.0-rc.2 <0.3.0-0"
   },
   "author": "gaojingze",
   "repository": {

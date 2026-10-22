@@ -17,7 +17,10 @@ export function describeFailure(msg){const m=String(msg||'');
  if(/45分钟|上限/.test(m))return '本批超过时间上限';
  return m.slice(0,80)}
 export const dayCN=(now=new Date())=>new Intl.DateTimeFormat('sv-SE',{timeZone:'Asia/Shanghai',year:'numeric',month:'2-digit',day:'2-digit'}).format(now);
-export function due(settings,state,now=new Date()){const hour=Number(new Intl.DateTimeFormat('en-GB',{timeZone:'Asia/Shanghai',hour:'2-digit',hourCycle:'h23'}).format(now));return settings.enabled&&hour>=settings.hour&&state.lastAttemptDay!==dayCN(now)}
+export function due(settings,state,now=new Date()){const hour=Number(new Intl.DateTimeFormat('en-GB',{timeZone:'Asia/Shanghai',hour:'2-digit',hourCycle:'h23'}).format(now));if(!settings.enabled||hour<settings.hour)return false;if(state.lastAttemptDay!==dayCN(now))return true;
+ // 当天已跑过但一个来源都没读通（通常是网络或代理没开），每 2 小时再试一次，最多 3 次。
+ const verified=Number(state.added?.verified||0);const retries=Number(state.retries||0);
+ return ['partial','failed','interrupted'].includes(state.phase)&&verified===0&&retries<3&&!!state.lastFinishedAt&&(now.getTime()-Date.parse(state.lastFinishedAt))>=2*3600*1000}
 export function htmlText(raw){return String(raw).replace(/<(script|style|noscript|svg)\b[^>]*>[\s\S]*?<\/\1>/gi,' ').replace(/<[^>]+>/g,' ').replace(/&nbsp;|&#160;/g,' ').replace(/&amp;/g,'&').replace(/&quot;/g,'"').replace(/&#39;/g,"'").replace(/&lt;/g,'<').replace(/&gt;/g,'>').replace(/\s+/g,' ').trim().slice(0,50000)}
 const discover=[
  ['淘宝／天猫','天猫双11 活动时间表 预售 现货 开卖时间 官方 玩法'],
@@ -70,13 +73,13 @@ export async function publicPage(url,signal){
 }
 export function createCollector({extract,search,fetchPage=publicPage,now=()=>new Date(),storageRoot=projectRoot,loadData=()=>readJson(dataPath,null),commitData=commitCalendar,rendererFactory=()=>createPublicRenderer(allowedUrl)}){
  const statePath=join(storageRoot,'outputs/calendar-collector-state.json'),configPath=join(storageRoot,'outputs/calendar-collector-settings.json');
- let running=false,activeController,settings={enabled:true,hour:9},state={running:false,phase:'idle',lastAttemptDay:null,lastStartedAt:null,lastFinishedAt:null,checked:0,total:0,failures:[],notice:'DSH运行时每天北京时间09:00采集，每次最多读 12 个来源、45 分钟；当日错过则启动后补采。'};
+ let running=false,activeController,settings={enabled:true,hour:9},state={running:false,phase:'idle',lastAttemptDay:null,lastStartedAt:null,lastFinishedAt:null,checked:0,total:0,failures:[],notice:'DSH运行时每天北京时间09:00采集，每次最多读 12 个来源、45 分钟；当日错过则启动后补采；一个来源都没读通时每 2 小时重试，最多 3 次。'};
  const persist=()=>saveJson(statePath,{...state,running});
  async function init(){await mkdir(join(storageRoot,'outputs'),{recursive:true});settings=await readJson(configPath,settings);state={...state,...await readJson(statePath,{}),running:false};if(state.phase==='running'){state.phase='interrupted';state.lastAttemptDay=null;}return status()}
  function status(){return {...state,running,settings,engine:'DSH后台采集；不依赖Codex',sourceHubs,collectionLimits:{articlesPerRun:12,linksPerHub:3,maxMinutes:45},modelUsage:'正文结构化使用DSH当前默认模型；可能产生该模型的调用费用'};}
  async function configure(input){if(typeof input.enabled!=='boolean'||!Number.isInteger(input.hour)||input.hour<0||input.hour>23)throw Error('调度设置无效');settings={enabled:input.enabled,hour:input.hour};await saveJson(configPath,settings);return status()}
  async function run(reason='manual'){
-  if(running)return status();running=true;const started=now();state={...state,phase:'running',lastAttemptDay:dayCN(started),lastStartedAt:started.toISOString(),lastFinishedAt:null,checked:0,total:0,failures:[],reason,summary:'',added:null,network:''};await persist();
+  if(running)return status();running=true;const started=now();const retries=reason==='daily'&&state.lastAttemptDay===dayCN(started)?Number(state.retries||0)+1:0;state={...state,retries,phase:'running',lastAttemptDay:dayCN(started),lastStartedAt:started.toISOString(),lastFinishedAt:null,checked:0,total:0,failures:[],reason,summary:'',added:null,network:''};await persist();
   const controller=new AbortController();activeController=controller;const timeout=setTimeout(()=>controller.abort(),45*60*1000);let renderer;let before={events:0,coupons:0};let queue=[];let discoveryFailed=0;
   try{
    try{state.network=(await proxyArgs()).note}catch{}
@@ -133,7 +136,7 @@ export function createCollector({extract,search,fetchPage=publicPage,now=()=>new
   const reasons={};for(const f of s.failures)if(f.stage!=='discovery'){const k=f.reason||describeFailure(f.error);reasons[k]=(reasons[k]||0)+1}
   if(Object.keys(reasons).length)parts.push('受阻原因：'+Object.entries(reasons).map(([k,v])=>k+' '+v+' 个').join('，'));
   if(discoveryFailed>=discover.length/2)parts.push('DSH 联网搜索整轮不可用，没有发现新来源');
-  if(s.skippedManual)parts.push(s.skippedManual+' 个需登录来源已停止自动访问');if(s.network)parts.push(s.network);
+  if(s.skippedManual)parts.push(s.skippedManual+' 个需登录来源已停止自动访问');if(s.phase!=='failed'&&a.verified===0&&Number(s.retries||0)<3)parts.push('看起来网络没通，2 小时后会自动再试');if(s.network)parts.push(s.network);
   return parts.join('；');
  }
  async function tick(){if(!running&&due(settings,state,now()))return run('daily');return status()}
